@@ -1,45 +1,13 @@
-#include "../inc/xsysc.hpp"
+#include "../inc/xparser.h"
 
-
-
-void XSYSC__ExecuteCmd(char const *cmd)
-{
-    pid_t pidProc;
-    char  **argsList = NULL;
-
-    pidProc = fork();
-    /* execute shell command in child process */
-    if (pidProc == XSYSC__PID_CHILD)
-    {
-        argsList = XSYSC__ParseCmd(cmd);
-        if (argsList)
-        {
-            printf("Executing child process\n");
-            /* call exec here */
-            execv(argsList[0], argsList);
-            /*>
-             *------------------------------
-             * Child executes the following if unsuccessful */
-            printf("Execution failed in child proc.\n");
-            XSYSC__DestroyArgsList(&argsList);
-            kill(pidProc,  SIGINT);
-        }
-    }
-    /* Parent wait for child process */
-    if (pidProc != XSYSC__PID_CHILD) wait(NULL);
-
-    /* Manage resources */
-    XSYSC__DestroyArgsList(&argsList);
-}
-
-size_t XSYSC__StrLen(char const *s)
+size_t XPARSER__StrLen(char const *s)
 {
     size_t i;
 
     i = 0;
     if (s)
     {
-        while (*(s + i) != XSYSC__CHAR_NULL)
+        while (*(s + i) != XPARSER__CHAR_NULL)
         {
             i++;
         }
@@ -47,7 +15,7 @@ size_t XSYSC__StrLen(char const *s)
     return (i);
 }
 
-char *XSYSC__StrChr(const char *str, int chr)
+char *XPARSER__StrChr(const char *str, int chr)
 {
     unsigned char c;
     char *s;
@@ -56,7 +24,7 @@ char *XSYSC__StrChr(const char *str, int chr)
     s = (char *)str;
     c = (unsigned char)chr;
     ret = NULL;
-    while ((*s) != XSYSC__CHAR_NULL)
+    while ((*s) != XPARSER__CHAR_NULL)
     {
         if ((*s) == c)
         {
@@ -66,40 +34,40 @@ char *XSYSC__StrChr(const char *str, int chr)
         s++;
     }
     /* User may search for null char '\0' */
-    if ((c) == XSYSC__CHAR_NULL)
+    if ((c) == XPARSER__CHAR_NULL)
     {
         ret = s;
     }
     return (ret);
 }
 
-char **XSYSC__ParseCmd(char const *s)
+char **XPARSER__ParseCmd(char const *s)
 {
 
     char **cmdArgs;
     size_t tokenCnt = 0;
 
-    tokenCnt = XSYSC__GetTokenCount(s);
-#ifdef __DEBUG_XSYSC__
-    printf("%s: length(%ld); tokens(%ld)\n", s, XSYSC__StrLen(s), tokenCnt);
+    tokenCnt = XPARSER__GetTokenCount(s);
+#ifdef __DEBUG_XPARSER__
+    printf("%s: length(%ld); tokens(%ld)\n", s, XPARSER__StrLen(s), tokenCnt);
 #endif
 
     /* Allocate memory for token strings */
     cmdArgs = (char **)malloc(sizeof(char *) * (tokenCnt + 1));
 
     /* Convert token to single string and assign to args list */
-    XSYSC__AddArgsToList(s, tokenCnt, cmdArgs);
+    XPARSER__AddArgsToList(s, tokenCnt, cmdArgs);
 
     /* Null terminate argv list */
     cmdArgs[tokenCnt] = NULL;
 
     /* Free resoures on heap */
-    //XSYSC__DestroyArgsList(&cmdArgs);
+    //XPARSER__DestroyArgsList(&cmdArgs);
 
     return (cmdArgs);
 }
 
-void *XSYSC__DestroyArgsList(char ***listAdr)
+void *XPARSER__DestroyArgsList(char ***listAdr)
 {
     char **argsList = NULL;
     size_t idx = 0;
@@ -122,7 +90,7 @@ void *XSYSC__DestroyArgsList(char ***listAdr)
     return (NULL);
 }
 
-size_t XSYSC__GetTokenCount(char const *str)
+size_t XPARSER__GetTokenCount(char const *str)
 {
     size_t  tokenCnt = 0;
     char   *s;
@@ -130,11 +98,11 @@ size_t XSYSC__GetTokenCount(char const *str)
     char   *pEnd;
 
     s = (char *)str;
-    while ( s && (*s) != XSYSC__CHAR_NULL)
+    while ( s && (*s) != XPARSER__CHAR_NULL)
     {
         pStart = NULL;
         pEnd = NULL;
-        s = XSYSC__GetToken(s, &pStart, &pEnd);
+        s = XPARSER__GetToken(s, &pStart, &pEnd);
         if (pStart)
         {
             tokenCnt++;
@@ -144,26 +112,26 @@ size_t XSYSC__GetTokenCount(char const *str)
     return (tokenCnt);
 }
 
-char *XSYSC__GetToken(char const *str, char **pStart, char **pEnd)
+char *XPARSER__GetToken(char const *str, char **pStart, char **pEnd)
 {
     char *s;
 
     s = (char *)str;
     /* Find the start(first character) of a string */
-    *pStart = XSYSC__FindNonWhiteSpace(s);
+    *pStart = XPARSER__FindNonWhiteSpace(s);
     if (*pStart)
     {
         /*>
          * skip the followin string characters till last chr in string just
          * before a whitespace char */
-        s = XSYSC__FindWhiteSpace(*pStart);
+        s = XPARSER__FindWhiteSpace(*pStart);
         if (s)
         {
             *pEnd = s;
         }
         else /* string terminator character found */
         {
-            *pEnd = (*pStart) + XSYSC__StrLen(*pStart);
+            *pEnd = (*pStart) + XPARSER__StrLen(*pStart);
         }
     }
     return (s);
@@ -172,14 +140,14 @@ char *XSYSC__GetToken(char const *str, char **pStart, char **pEnd)
 
 
 
-char *XSYSC__FindNonWhiteSpace(char const *str)
+char *XPARSER__FindNonWhiteSpace(char const *str)
 {
     char *s = (char *)str;
     char *ret = NULL;
     
-    while ( s && ((*s) != XSYSC__CHAR_NULL) )
+    while ( s && ((*s) != XPARSER__CHAR_NULL) )
     {
-        if (!XSYSC__StrChr(XSYSC__WHITESPACE_CHARS, *s))
+        if (!XPARSER__StrChr(XPARSER__WHITESPACE_CHARS, *s))
         {
             ret = s;
             break ;
@@ -192,14 +160,14 @@ char *XSYSC__FindNonWhiteSpace(char const *str)
 
 
 
-char *XSYSC__FindWhiteSpace(char const *str)
+char *XPARSER__FindWhiteSpace(char const *str)
 {
     char *s = (char *)str;
     char *ret = NULL;
     
-    while ( s && ((*s) != XSYSC__CHAR_NULL) )
+    while ( s && ((*s) != XPARSER__CHAR_NULL) )
     {
-        if (XSYSC__StrChr(XSYSC__WHITESPACE_CHARS, *s))
+        if (XPARSER__StrChr(XPARSER__WHITESPACE_CHARS, *s))
         {
             ret = s;
             break ;
@@ -212,7 +180,7 @@ char *XSYSC__FindWhiteSpace(char const *str)
 
 
 
-void  XSYSC__AddArgsToList(char const *str, size_t cnt, char **argsList)
+void  XPARSER__AddArgsToList(char const *str, size_t cnt, char **argsList)
 {
     size_t  idx=0;
     size_t  tokenLen = 0;
@@ -224,17 +192,17 @@ void  XSYSC__AddArgsToList(char const *str, size_t cnt, char **argsList)
     /* Convert token to single string and assign to args list */
     while (idx < cnt)
     {
-        s = XSYSC__GetToken(s, &pStart, &pEnd);
+        s = XPARSER__GetToken(s, &pStart, &pEnd);
         tokenLen = pEnd - pStart;
         arg = (char *)malloc(tokenLen + 1);
         if (arg)
         {
-            XSYSC__MemCpy(arg, pStart, tokenLen);
-            arg[tokenLen] = XSYSC__CHAR_NULL;
+            XPARSER__MemCpy(arg, pStart, tokenLen);
+            arg[tokenLen] = XPARSER__CHAR_NULL;
             argsList[idx] = arg;
-#ifdef __DEBUG_XSYSC__
+#ifdef __DEBUG_XPARSER__
             printf("%ld: %s; len(%ld)\n", idx, pStart, pEnd - pStart);
-            printf("%ld: %s; len(%ld)\n", idx, argsList[idx], XSYSC__StrLen(argsList[idx]));
+            printf("%ld: %s; len(%ld)\n", idx, argsList[idx], XPARSER__StrLen(argsList[idx]));
 #endif
         }
         idx++;
@@ -244,7 +212,7 @@ void  XSYSC__AddArgsToList(char const *str, size_t cnt, char **argsList)
 
 
 
-void	*XSYSC__MemCpy(void *dest, const void *src, size_t n)
+void	*XPARSER__MemCpy(void *dest, const void *src, size_t n)
 {	
 	size_t			i;
 	unsigned char	*dest2;
